@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0c0d">
+<meta name="description" content="Erstelle ein animiertes Schallplattenvideo aus deiner Audiodatei – komplett lokal im Browser.">
+<title>MP3 zu Vinyl Video Maker</title>
+<style>
+:root{--bg:#0b0d0e;--surface:#17191b;--surface2:#212325;--line:#303334;--text:#f5f6f5;--muted:#9a9c9d;--lime:#c9ff00;--lime-soft:#c9ff001a;--red:#d50928;--radius:19px;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(ellipse 76% 43% at 50% 31%,#111816 0%,#0b0e0d 58%,#0b0c0d 100%);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.52}
+header{max-width:1040px;margin:0 auto;padding:68px 32px 34px}
+.kicker{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--lime);font-weight:800;margin:0 0 14px}
+h1{font-size:clamp(44px,6.9vw,76px);line-height:.99;max-width:750px;letter-spacing:-.067em;margin:0 0 22px;font-weight:850}
+.intro{font-size:clamp(17px,2vw,23px);line-height:1.44;color:#aeafb0;max-width:720px;margin:0}
+.editor{max-width:1112px;padding:0 32px 48px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:28px;align-items:start}
+.preview-column{min-width:0}
+.preview-frame{width:100%;max-width:100%;aspect-ratio:16/9;margin:auto;background:#08090a;border:1px solid #242628;border-radius:17px;position:relative;overflow:hidden;box-shadow:0 20px 75px #0004;transition:width .2s,aspect-ratio .2s}
+.preview-frame.is-square{width:min(100%,470px);aspect-ratio:1}
+.preview-frame.is-portrait{width:min(100%,305px);aspect-ratio:9/16}
+.preview-frame canvas{display:block;width:100%;height:100%}
+.preview-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:11px 2px 0;color:#8b8e8d;font-size:12px;font-weight:650;flex-wrap:wrap}
+.preview-foot .live{display:flex;align-items:center;gap:6px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px #c9ff0070}
+.controls{display:flex;flex-direction:column;gap:17px;min-width:0}
+.file-upload{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #2b3031;border-radius:15px;background:#121617;padding:17px 16px;min-height:76px;outline:0;transition:background .2s,border-color .2s;cursor:pointer}
+.file-upload:hover,.file-upload:focus-visible,.file-upload.drag-over{border-color:var(--lime);background:#1b2117}
+.file-upload input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.file-upload .up-left{display:flex;align-items:center;gap:13px;min-width:0}
+.upload-icon{flex-shrink:0;width:39px;height:39px;display:grid;place-items:center;border-radius:12px;background:#242b20;color:var(--lime)}
+.file-meta{min-width:0}.file-meta strong{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:290px}.file-meta small{display:block;font-size:12px;color:#9fa3a2;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-chevron{color:#979c9c;flex-shrink:0}
+.field{display:flex;flex-direction:column;gap:7px}
+.field>label,.field-label{font-size:12px;color:#9d9e9f;font-weight:740}
+.text-input{height:42px;width:100%;border-radius:21px;background:#131617;border:1px solid #2b2f2f;outline:none;color:#ededed;padding:0 15px;font-size:14px;transition:border-color .2s,box-shadow .2s}
+.text-input:focus{border-color:#8aaa26;box-shadow:0 0 0 3px #c9ff0012}
+.format-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.format-option{background:#131617;border:1px solid #282c2c;border-radius:14px;padding:11px 7px;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#a0a2a2;transition:background .2s,border-color .2s,color .2s;font-size:12px}
+.format-option strong{font-size:13px}.format-option span{font-size:11px;font-weight:600}
+.format-option.active{color:var(--lime);border-color:#9abe00;background:var(--lime-soft)}
+.format-option:focus-visible,.swatch:focus-visible,.render-button:focus-visible,.action-button:focus-visible,.choice-pill:focus-visible,.secondary-button:focus-visible,.color-picker:focus-visible{outline:2px solid white;outline-offset:3px}
+.appearance-row{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.swatches{display:flex;gap:9px;align-items:center;min-height:39px;flex-wrap:wrap}
+.swatch{width:32px;height:38px;background:var(--swatch);border:1px solid #ffffff20;border-radius:18px;position:relative;transition:transform .15s,outline-color .15s;flex:0 0 auto}
+.swatch.selected{outline:2px solid var(--lime);outline-offset:2px}
+.swatch:hover{transform:translateY(-2px)}
+.vinyl-options{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.choice-pill{min-height:38px;padding:0 14px;border-radius:999px;border:1px solid #313535;background:#131617;color:#d6d7d7;font-size:12px;font-weight:760;display:inline-flex;align-items:center;gap:8px;transition:transform .15s,border-color .15s,color .15s,background .15s}
+.choice-pill:hover{transform:translateY(-1px)}
+.choice-pill.active{border-color:#9abe00;background:var(--lime-soft);color:var(--lime)}
+.choice-pill .mini-disc{width:14px;height:14px;border-radius:50%;display:inline-block;border:1px solid #ffffff26;background:radial-gradient(circle at 34% 31%,#2a2b2c 0%,#0c0d0f 52%,#060708 100%)}
+.choice-pill[data-vinyl=gold] .mini-disc{background:radial-gradient(circle at 34% 31%,#fff3ae 0%,#f0cf48 30%,#a67213 70%,#5f420d 100%)}
+.secondary-button{min-height:39px;padding:0 14px;border-radius:12px;border:1px solid #303435;background:#16191a;color:#eff0ee;font-size:12px;font-weight:720;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,border-color .15s,background .15s}
+.secondary-button:hover{transform:translateY(-1px);border-color:#66706b}
+.custom-color-panel{display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-top:11px;padding:12px;border-radius:14px;border:1px solid #2c3031;background:#121516}
+.custom-color-panel.visible{display:flex}
+.color-picker{appearance:none;-webkit-appearance:none;width:56px;height:40px;padding:0;border:1px solid #ffffff26;border-radius:12px;background:#101314;overflow:hidden}
+.color-picker::-webkit-color-swatch-wrapper{padding:0}.color-picker::-webkit-color-swatch{border:none;border-radius:10px}
+.color-picker::-moz-color-swatch{border:none;border-radius:10px}
+.color-meta{display:flex;flex-direction:column;gap:4px}
+.color-meta strong{font-size:12px}.color-meta small{font-size:11px;color:#9fa3a2}
+.render-button{width:100%;border:0;background:var(--lime);color:#0b0c06;min-height:47px;border-radius:13px;font-size:13px;font-weight:850;display:flex;justify-content:center;align-items:center;gap:9px;transition:transform .15s,filter .15s}
+.render-button:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}
+.small-note{font-size:12px;color:#868989;font-weight:600;line-height:1.55;margin:0}
+.status{padding:12px 13px;border:1px solid #3e3d2b;border-radius:12px;background:#211f12;font-size:12px;color:#e1dcb8;line-height:1.5;display:none}
+.status.visible{display:block}.status.error{background:#291617;border-color:#714040;color:#ffbabd}.status.success{background:#192319;border-color:#466b30;color:#c9edb9}
+.progress-wrap{display:none;border:1px solid #353b31;background:#171c16;border-radius:15px;padding:15px}
+.progress-wrap.visible{display:block}
+.progress-top{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:720;margin-bottom:11px}.progress-track{height:7px;border-radius:6px;background:#343d2b;overflow:hidden}.progress-fill{width:0;height:100%;background:var(--lime);border-radius:6px;transition:width .12s}.progress-note{color:#a2aaa0;font-size:11px;line-height:1.5;margin:10px 0 0}
+.action-button{background:#282b2b;border:1px solid #4b5050;color:#f3f4f2;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700}
+.progress-cancel{margin-top:12px}
+.output{display:none;padding:16px;background:#171c16;border:1px solid #3d5e26;border-radius:16px}.output.visible{display:block}
+.output h3{font-size:17px;margin:0 0 7px}.output p{font-size:12px;color:#aeb7a6;line-height:1.5;margin:0 0 12px}
+.output video{width:100%;max-height:360px;background:#080808;border-radius:10px;display:block;margin-bottom:12px}
+.download-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--lime);color:#111;border:0;border-radius:10px;text-decoration:none;font-size:13px;font-weight:850;padding:12px 18px}
+.wave{height:72px;margin:26px 0 0;opacity:.55;pointer-events:none}
+.wave svg{width:100%;height:100%;display:block;overflow:visible}
+.how{max-width:1210px;margin:0 auto 45px;border-radius:26px;background:#1b1d1f;padding:48px 35px 45px}
+.how h2{font-size:clamp(27px,4vw,37px);letter-spacing:-.055em;text-align:center;margin:0 0 27px}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.step{border-radius:21px;background:#242628;border:1px solid #2d3031;padding:24px 22px;min-height:284px}
+.step-number{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--lime);color:#121212;font-size:13px;font-weight:900;margin-bottom:17px}
+.step h3{font-size:17px;letter-spacing:-.02em;margin:0 0 10px;line-height:1.32}
+.step p{font-size:14px;line-height:1.65;color:#b0b2b3;margin:0 0 12px}
+.step small{color:#959899;font-size:12px;line-height:1.45;display:block}
+footer{max-width:1200px;margin:auto;padding:0 32px 32px;font-size:12px;color:#858787;text-align:center;line-height:1.7}
+@media (max-width:830px){header{padding-top:44px}.editor{grid-template-columns:1fr;max-width:640px;gap:24px}.preview-frame{max-width:100%}.controls{gap:16px}.how{margin:8px 20px 35px;padding:35px 22px}.steps{grid-template-columns:1fr}.step{min-height:auto;padding:22px}.wave{height:55px}}
+@media (max-width:520px){header{padding:40px 20px 29px}h1{font-size:clamp(40px,11.1vw,58px)}.intro{font-size:16px}.editor{padding:0 20px 35px}.file-meta strong{max-width:220px}.how{margin:0 12px 28px;padding:31px 17px;border-radius:21px}.steps{gap:10px}.preview-foot{font-size:11px}.format-option{padding:9px 4px}.step p{font-size:13px}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">100 % lokal · Kein Upload · Kein Konto</p>
+  <h1>MP3 zu Vinyl Video Maker</h1>
+  <p class="intro">Füge deinen Song hinzu. Die Schallplatte dreht sich zu deinem Audio, das Label zeigt Titel und Künstler an, und das Ganze wird als Video für YouTube, TikTok, Reels oder Shorts gerendert. Drei Größen, ein Klick, kein Upload nötig.</p>
+</header>
+<main>
+<section class="editor" aria-label="Videoeditor">
+  <div class="preview-column">
+    <div id="previewFrame" class="preview-frame">
+      <canvas id="previewCanvas" width="960" height="540" aria-label="Animierte Vorschau der Schallplatte"></canvas>
+    </div>
+    <div class="preview-foot"><span id="previewDetails">Vorschau · 16:9 · 1920 × 1080 · YouTube</span><span class="live"><span class="dot"></span> Live-Vorschau</span></div>
+  </div>
+  <div class="controls">
+    <label id="fileDrop" class="file-upload" for="audioFile" tabindex="0" role="button" aria-label="Audiodatei auswählen oder hierher ziehen">
+      <input id="audioFile" type="file" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a,.aac,.opus">
+      <span class="up-left"><span class="upload-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m0 0 4.5 4.5M12 3 7.5 7.5M4 16.5v2A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-2"/></svg></span><span class="file-meta"><strong id="fileName">Audiodatei auswählen</strong><small id="fileStats">MP3, WAV, FLAC, OGG, M4A, AAC · bis 200 MB</small></span></span>
+      <span class="file-chevron" aria-hidden="true">＋</span>
+    </label>
+    <div class="field"><label for="songTitle">Songtitel</label><input class="text-input" id="songTitle" maxlength="65" value="Untitled" autocomplete="off"></div>
+    <div class="field"><label for="artistName">Künstler</label><input class="text-input" id="artistName" maxlength="65" value="made by you" autocomplete="off"></div>
+    <div class="field"><span class="field-label" id="formatLabel">Format</span><div class="format-options" role="group" aria-labelledby="formatLabel">
+      <button type="button" class="format-option" data-format="square" aria-pressed="false"><strong>1:1</strong><span>Instagram</span></button>
+      <button type="button" class="format-option" data-format="portrait" aria-pressed="false"><strong>9:16</strong><span>TikTok / Reels</span></button>
+      <button type="button" class="format-option active" data-format="landscape" aria-pressed="true"><strong>16:9</strong><span>YouTube</span></button>
+    </div></div>
+    <div class="field">
+      <span class="field-label" id="colorLabel">Etikettenfarbe & Vinyl</span>
+      <div class="appearance-row">
+        <div class="swatches" role="group" aria-labelledby="colorLabel">
+          <button type="button" class="swatch selected" data-color="#da0928" style="--swatch:#da0928" aria-label="Rot" aria-pressed="true"></button>
+          <button type="button" class="swatch" data-color="#cbff00" style="--swatch:#cbff00" aria-label="Neongrün" aria-pressed="false"></button>
+          <button type="button" class="swatch" data-color="#eee0c2" style="--swatch:#eee0c2" aria-label="Creme" aria-pressed="false"></button>
+          <button type="button" class="swatch" data-color="#254493" style="--swatch:#254493" aria-label="Blau" aria-pressed="false"></button>
+        </div>
+        <div class="vinyl-options" role="group" aria-label="Vinylfarbe auswählen">
+          <button type="button" class="choice-pill active" data-vinyl="black" aria-pressed="true"><span class="mini-disc" aria-hidden="true"></span> Schwarz</button>
+          <button type="button" class="choice-pill" data-vinyl="gold" aria-pressed="false"><span class="mini-disc" aria-hidden="true"></span> Gold</button>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <button id="customColorBtn" class="secondary-button" type="button">Weitere Etikettenfarbe hinzufügen</button>
+      </div>
+      <div id="customColorPanel" class="custom-color-panel" aria-live="polite">
+        <input id="customColorPicker" class="color-picker" type="color" value="#ff6a00" aria-label="Eigene Etikettenfarbe auswählen">
+        <div class="color-meta"><strong>Eigene Etikettenfarbe</strong><small id="customColorValue">#FF6A00</small></div>
+      </div>
+    </div>
+    <button id="renderBtn" class="render-button" type="button" disabled>MP4 rendern <span aria-hidden="true">→</span></button>
+    <p class="small-note" id="renderNote">Wähle zuerst deine Audiodatei. Der Export wird komplett im Browser verarbeitet, ohne Server und ohne Upload.</p>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div class="progress-wrap" id="progressWrap" aria-live="polite"><div class="progress-top"><span id="progressText">Video wird vorbereitet …</span><span id="progressPct">0 %</span></div><div class="progress-track"><div id="progressFill" class="progress-fill"></div></div><p id="progressNote" class="progress-note">Das Fenster geöffnet lassen, bis der Export abgeschlossen ist.</p><button id="cancelBtn" class="action-button progress-cancel" type="button">Rendern abbrechen</button></div>
+    <div class="output" id="output"><h3 id="outputTitle">Dein Vinyl-Video ist fertig!</h3><p id="outputInfo"></p><video id="resultVideo" controls playsinline preload="metadata"></video><a id="downloadLink" class="download-button" href="#">Video herunterladen ↓</a></div>
+  </div>
+</section>
+<div class="wave" aria-hidden="true"><svg viewBox="0 0 1440 70" preserveAspectRatio="none"><path d="M0 40 C110 34 140 19 215 21 S337 5 418 18 526 15 600 26 695 21 768 27 865 14 950 29 1050 30 1126 23 1240 26 1314 20 1404 11 1440 13" fill="none" stroke="#a8d500" stroke-opacity=".27" stroke-width="1.4"/><path d="M0 54 C100 45 158 48 245 37 S368 45 438 45 537 58 606 53 721 54 794 50 870 48 950 51 1048 52 1130 47 1219 55 1300 45 1376 43 1440 41" fill="none" stroke="#889393" stroke-opacity=".24" stroke-width="1.2"/></svg></div>
+<section class="how" aria-labelledby="howTitle">
+  <h2 id="howTitle">So funktioniert es</h2>
+  <div class="steps">
+    <article class="step"><span class="step-number">01</span><h3>Lass deine Audiodatei fallen</h3><p>Wähle eine MP3, WAV, FLAC, OGG, M4A oder AAC. Dein Browser dekodiert sie lokal über die Web Audio API. Es werden keine Dateien hochgeladen.</p><small>Bis zu 200 MB · Welche Formate sich öffnen lassen, hängt vom Browser ab.</small></article>
+    <article class="step"><span class="step-number">02</span><h3>Titel und Künstler eingeben, Größe auswählen</h3><p>Das Label und die Vorschau aktualisieren sich sofort. Wähle 1:1 für Instagram, 9:16 für TikTok, Reels und Shorts oder 16:9 für YouTube.</p><small>Auflösungen: 1080 × 1080 / 1080 × 1920 / 1920 × 1080</small></article>
+    <article class="step"><span class="step-number">03</span><h3>Video rendern und speichern</h3><p>Die Schallplatte wird mit 30 Bildern pro Sekunde animiert. Moderne Browser kodieren H.264-Video und AAC-Audio direkt als MP4.</p><small>Kein Server · Keine Installation · Falls MP4 nicht unterstützt wird: WebM-Ersatzexport</small></article>
+  </div>
+</section>
+</main>
+<footer>Alle Daten bleiben auf deinem Gerät. Am besten funktioniert der MP4-Export mit einer aktuellen Version von Chrome oder Edge am Desktop.</footer>
+<script>
+'use strict';
+(() => {
+  const $ = id => document.getElementById(id);
+  const PRESETS = {
+    square: { width:1080, height:1080, label:'1:1 · 1080 × 1080 · Instagram', ratio:'1:1' },
+    portrait: { width:1080, height:1920, label:'9:16 · 1080 × 1920 · TikTok / Reels', ratio:'9:16' },
+    landscape: { width:1920, height:1080, label:'16:9 · 1920 × 1080 · YouTube', ratio:'16:9' }
+  };
+  const FPS=30, MAX_BYTES=200*1024*1024;
+  let format='landscape', labelColor='#da0928', vinylColor='black', decodedAudio=null, file=null, rendering=false, cancelled=false, previewHandle=0, previewStartTime=performance.now(), resultURL=null, fileLoadNumber=0;
+  const pCanvas=$('previewCanvas'), pCtx=pCanvas.getContext('2d',{alpha:false});
+  const renderCanvas=document.createElement('canvas');
+  const state=()=>({title:$('songTitle').value.trim()||'UNTITLED',artist:$('artistName').value.trim()||'UNKNOWN ARTIST',color:labelColor,vinylColor,format,duration:decodedAudio?.duration||45});
+  const setStatus=(message,type='')=>{const el=$('status');el.textContent=message;el.className='status'+(message?' visible':'')+(type?' '+type:'');};
+  const durationString=s=>{if(!Number.isFinite(s))return '–';s=Math.floor(s);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
+  const sizeString=b=>b>=1024*1024?`${(b/1024/1024).toFixed(2)} MB`:`${(b/1024).toFixed(1)} KB`;
+  const clamp=(x,min,max)=>Math.min(max,Math.max(min,x));
+  function fitText(ctx,str,maxWidth,startSize,minSize){let size=startSize;while(size>minSize){ctx.font=`900 ${size}px Arial, sans-serif`;if(ctx.measureText(str).width<=maxWidth)break;size-=2;}return size;}
+  function rgb(hex){return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
+  function paint(ctx,W,H,time,opts){
+    const portrait=H/W>1.3,square=Math.abs(W-H)<10;
+    const shortest=Math.min(W,H),cx=W/2,cy=H*(portrait?.515:square?.54:.55),rad=shortest*(portrait?.395:square?.35:.36);
+    // Grundfläche, Schatten und eine dezente, beleuchtete Fläche
+    const bg=ctx.createRadialGradient(W*.51,H*.40,0,W*.5,H*.49,Math.max(W,H)*.79);
+    bg.addColorStop(0,'#1a1b1c');bg.addColorStop(.39,'#101112');bg.addColorStop(1,'#070809');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    const ambient=ctx.createLinearGradient(0,0,W,H);ambient.addColorStop(0,'#ffffff08');ambient.addColorStop(.43,'#00000000');ambient.addColorStop(1,'#00000042');ctx.fillStyle=ambient;ctx.fillRect(0,0,W,H);
+    const title=opts.title.toLocaleUpperCase('de-DE'),artist=opts.artist.toLocaleUpperCase('de-DE');
+    // In 1:1 und 16:9 eigenen Textraum oberhalb der Vinyl freihalten.
+    const titleY=portrait?H*.187:square?H*.09:H*.079;
+    const titleSize=fitText(ctx,title,W*.83,shortest*(portrait?.040:square?.043:.042),12);
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#f8f8f7';ctx.font=`900 ${titleSize}px Arial,sans-serif`;
+    ctx.fillText(title,cx,titleY, W*.84);
+    const subSize=Math.max(12,shortest*(portrait?.018:square?.018:.020));ctx.fillStyle='#c9ff00';ctx.font=`800 ${subSize}px Arial,sans-serif`;
+    ctx.fillText(artist,cx,titleY+titleSize*.87,W*.78);
+    const goldVinyl=opts.vinylColor==='gold';
+    // Vinyl-Schlagschatten
+    ctx.save();ctx.shadowColor='#000';ctx.shadowBlur=rad*.15;ctx.shadowOffsetY=rad*.047;ctx.fillStyle=goldVinyl?'#2c2208':'#020303';ctx.beginPath();ctx.arc(cx,cy,rad+2,0,2*Math.PI);ctx.fill();ctx.restore();
+    // Kreisförmige Tonspur
+    ctx.save();ctx.translate(cx,cy);
+    const disc=ctx.createRadialGradient(-rad*.21,-rad*.22,rad*.08,0,0,rad);
+    if(goldVinyl){
+      disc.addColorStop(0,'#fff4b8');disc.addColorStop(.14,'#f4d95f');disc.addColorStop(.39,'#c18a22');disc.addColorStop(.68,'#8b6119');disc.addColorStop(.9,'#6f4f16');disc.addColorStop(1,'#50370f');
+    }else{
+      disc.addColorStop(0,'#101113');disc.addColorStop(.17,'#08090a');disc.addColorStop(.5,'#111213');disc.addColorStop(.78,'#090a0b');disc.addColorStop(.97,'#030405');disc.addColorStop(1,'#171819');
+    }
+    ctx.fillStyle=disc;ctx.beginPath();ctx.arc(0,0,rad,0,2*Math.PI);ctx.fill();
+    ctx.beginPath();ctx.arc(0,0,rad,0,2*Math.PI);ctx.clip();
+    for(let i=0;i<107;i++){
+      const r=rad*(.35+i*.0057);
+      ctx.beginPath();ctx.arc(0,0,r,0,2*Math.PI);
+      ctx.lineWidth=clamp(rad*.0013,.65,1.8);
+      ctx.strokeStyle=goldVinyl?(i%4===0?'#fff5b822':i%4===1?'#5d4008bb':'#f8de6a12'):(i%4===0?'#ffffff15':i%4===1?'#000000ab':'#ffffff0a');ctx.stroke();
+    }
+    // Lauflicht auf den Vinylrillen
+    const ang=time*.28;
+    for(let i=0;i<13;i++){
+      const r=rad*(.40+i*.042);
+      ctx.beginPath();ctx.arc(0,0,r,ang+.1+i*.027,ang+.52+i*.018);
+      ctx.strokeStyle=goldVinyl?`rgba(255,244,182,${.055+i*.003})`:`rgba(242,244,245,${.026+i*.002})`;ctx.lineWidth=rad*.003;ctx.stroke();
+      ctx.beginPath();ctx.arc(0,0,r,ang+3.05,ang+3.29);
+      ctx.strokeStyle=goldVinyl?'#fff3b312':'#ffffff0c';ctx.lineWidth=rad*.0018;ctx.stroke();
+    }
+    // Geschlossene Deckfläche mit hellen Reflexen
+    const shine=ctx.createLinearGradient(-rad,-rad*.72,rad,rad*.72);
+    if(goldVinyl){
+      shine.addColorStop(0,'#fffff222');shine.addColorStop(.16,'#fff4b895');shine.addColorStop(.34,'#ffe20024');shine.addColorStop(.52,'#ffffff00');shine.addColorStop(.74,'#fff0a885');shine.addColorStop(.88,'#fff7ce20');shine.addColorStop(1,'#ffffff00');
+    }else{
+      shine.addColorStop(0,'#ffffff06');shine.addColorStop(.38,'#ffffff00');shine.addColorStop(.66,'#ffffff04');shine.addColorStop(1,'#ffffff00');
+    }
+    ctx.fillStyle=shine;ctx.fillRect(-rad,-rad,rad*2,rad*2);
+    if(goldVinyl){
+      const innerSheen=ctx.createRadialGradient(-rad*.18,-rad*.15,rad*.05,0,0,rad*.82);
+      innerSheen.addColorStop(0,'#fff8d560');innerSheen.addColorStop(.45,'#ffd74a10');innerSheen.addColorStop(1,'#00000000');
+      ctx.fillStyle=innerSheen;ctx.beginPath();ctx.arc(0,0,rad*.84,0,2*Math.PI);ctx.fill();
+    }
+    // Rotierendes Etikett
+    ctx.rotate(time*.72);
+    const labelR=rad*.317;
+    ctx.fillStyle=opts.color;ctx.beginPath();ctx.arc(0,0,labelR,0,Math.PI*2);ctx.fill();
+    const [r,g,b]=rgb(opts.color);const darkText=(r*.299+g*.587+b*.114)>151;
+    ctx.fillStyle=darkText?'#151514':'#fffafa';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`900 ${labelR*.115}px Arial,sans-serif`;ctx.fillText('VINYL VIDEO',0,-labelR*.65,labelR*1.65);
+    ctx.strokeStyle=darkText?'#00000075':'#ffffff70';ctx.lineWidth=Math.max(1,labelR*.013);
+    ctx.beginPath();ctx.moveTo(-labelR*.73,-labelR*.47);ctx.lineTo(labelR*.73,-labelR*.47);ctx.stroke();
+    let fs=fitText(ctx,title,labelR*1.58,labelR*.171,labelR*.082);
+    ctx.font=`900 ${fs}px Arial,sans-serif`;ctx.fillText(title,0,-labelR*.12,labelR*1.58);
+    fs=fitText(ctx,artist,labelR*1.45,labelR*.121,labelR*.07);
+    ctx.font=`700 ${fs}px Arial,sans-serif`;ctx.fillText(artist,0,labelR*.22,labelR*1.46);
+    ctx.font=`600 ${labelR*.086}px Arial,sans-serif`;ctx.fillText('33⅓ RPM  •  STEREO',0,labelR*.70,labelR*1.53);
+    ctx.fillStyle='#101112';ctx.beginPath();ctx.arc(0,0,Math.max(2,rad*.014),0,2*Math.PI);ctx.fill();
+    ctx.restore();
+    // Tonarm: physikalisch plausible Schwenkbewegung von der äußeren Einlaufrille zur Innenrille.
+    // Die Nadel bleibt in einem festen Abstand zur Arm-Basis (kein längenveränderlicher Arm).
+    ctx.save();
+    const pivotNX=1.13,pivotNY=-.70;
+    const pivotX=cx+rad*pivotNX,pivotY=cy+rad*pivotNY;
+    const startNeedleX=.84,startNeedleY=.23;
+    const armLength=Math.hypot(pivotNX-startNeedleX,pivotNY-startNeedleY);
+    const pivotDistance=Math.hypot(pivotNX,pivotNY);
+    // Beim Export läuft time von 0 bis Songende. In der Vorschau wiederholt sich die Bewegung.
+    const songDuration=Math.max(.01,opts.duration||45);
+    const progress=clamp((time%songDuration)/songDuration,0,1);
+    const startRadius=Math.hypot(startNeedleX,startNeedleY);
+    const grooveRadius=startRadius-(startRadius-.42)*progress;
+    const along=(grooveRadius*grooveRadius+pivotDistance*pivotDistance-armLength*armLength)/(2*pivotDistance);
+    const across=Math.sqrt(Math.max(0,grooveRadius*grooveRadius-along*along));
+    const ux=pivotNX/pivotDistance,uy=pivotNY/pivotDistance;
+    const needleX=cx+rad*(ux*along-uy*across);
+    const needleY=cy+rad*(uy*along+ux*across);
+    const headW=rad*.082,headH=rad*.039;
+    const endX=needleX-headW*.12,endY=needleY-headH*.08;
+    ctx.strokeStyle='#0009';ctx.lineWidth=Math.max(4,rad*.017);ctx.lineCap='round';ctx.beginPath();ctx.moveTo(pivotX+3,pivotY+4);ctx.lineTo(endX+3,endY+4);ctx.stroke();
+    const arm=ctx.createLinearGradient(pivotX,pivotY,endX,endY);
+    arm.addColorStop(0,'#545759');arm.addColorStop(.5,'#9ca0a1');arm.addColorStop(1,'#25292b');
+    ctx.strokeStyle=arm;ctx.lineWidth=Math.max(2,rad*.009);ctx.beginPath();ctx.moveTo(pivotX,pivotY);ctx.lineTo(endX,endY);ctx.stroke();
+    ctx.fillStyle='#363a3b';ctx.beginPath();ctx.arc(pivotX,pivotY,rad*.043,0,2*Math.PI);ctx.fill();
+    ctx.strokeStyle='#737a7c';ctx.lineWidth=rad*.008;ctx.beginPath();ctx.arc(pivotX,pivotY,rad*.03,0,2*Math.PI);ctx.stroke();
+    ctx.fillStyle='#202325';ctx.beginPath();ctx.roundRect(endX-rad*.029,endY-rad*.016,headW,headH,rad*.006);ctx.fill();
+    ctx.strokeStyle='#bfc5c7';ctx.lineWidth=Math.max(1,rad*.0038);ctx.beginPath();ctx.moveTo(endX+headW*.18,endY+headH*.46);ctx.lineTo(needleX,needleY);ctx.stroke();
+    ctx.fillStyle='#d9dcde';ctx.beginPath();ctx.arc(needleX,needleY,Math.max(1.4,rad*.006),0,2*Math.PI);ctx.fill();
+    ctx.restore();
+    const bottomY=portrait?H*.818:square?H*.935:H*.955;
+    ctx.textAlign='center';ctx.font=`700 ${Math.max(9,shortest*.012)}px Arial,sans-serif`;
+    ctx.fillStyle='#777b7b';ctx.fillText('YOUR SOUND · ON VINYL · MADE BY CITIZENFOUR',cx,bottomY,W*.65);
+  }
+  function setPreviewFormat(){
+    const pr=PRESETS[format];pCanvas.width=format==='landscape'?960:format==='portrait'?540:760;
+    pCanvas.height=format==='landscape'?540:format==='portrait'?960:760;
+    $('previewFrame').className='preview-frame'+(format==='square'?' is-square':format==='portrait'?' is-portrait':'');
+    $('previewDetails').textContent='Vorschau · '+pr.label;
+    document.querySelectorAll('[data-format]').forEach(b=>{const selected=b.dataset.format===format;b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected));});
+  }
+  let paintCount=0;
+  function previewLoop(ms){
+    // Inaktiver Tab: die Vorschau muss keine volle Bildfrequenz erreichen.
+    if(!document.hidden || ++paintCount%24===0)paint(pCtx,pCanvas.width,pCanvas.height,Math.max(0,(ms-previewStartTime)/1000),state());
+    previewHandle=requestAnimationFrame(previewLoop);
+  }
+  function selectLabelColor(color,triggerButton=null){
+    labelColor=color;
+    document.querySelectorAll('[data-color]').forEach(x=>{const active=x===triggerButton;x.classList.toggle('selected',active);x.setAttribute('aria-pressed',String(active));});
+    $('customColorPicker').value=color;
+    $('customColorValue').textContent=color.toUpperCase();
+  }
+  function selectVinyl(type){
+    vinylColor=type;
+    document.querySelectorAll('[data-vinyl]').forEach(x=>{const active=x.dataset.vinyl===type;x.classList.toggle('active',active);x.setAttribute('aria-pressed',String(active));});
+  }
+  function setCustomColorPanelVisible(visible){$('customColorPanel').classList.toggle('visible',visible);}
+  setPreviewFormat();previewHandle=requestAnimationFrame(previewLoop);
+  document.querySelectorAll('[data-format]').forEach(b=>b.addEventListener('click',()=>{if(rendering)return;format=b.dataset.format;setPreviewFormat();}));
+  document.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click',()=>{if(rendering)return;selectLabelColor(b.dataset.color,b);}));
+  document.querySelectorAll('[data-vinyl]').forEach(b=>b.addEventListener('click',()=>{if(rendering)return;selectVinyl(b.dataset.vinyl);}));
+  $('customColorBtn').addEventListener('click',()=>{if(rendering)return;const panel=$('customColorPanel');const becomingVisible=!panel.classList.contains('visible');setCustomColorPanelVisible(becomingVisible);if(becomingVisible){$('customColorPicker').focus();selectLabelColor($('customColorPicker').value,null);}});
+  $('customColorPicker').addEventListener('input',e=>{if(rendering)return;selectLabelColor(e.target.value,null);setCustomColorPanelVisible(true);});
+  selectLabelColor(labelColor,document.querySelector('[data-color].selected'));selectVinyl('black');
+  const drop=$('fileDrop'),fileInput=$('audioFile');
+  drop.addEventListener('keydown',e=>{if(e.target===drop&&(e.key==='Enter'||e.key===' ')){e.preventDefault();fileInput.click();}});
+  ['dragenter','dragover'].forEach(name=>drop.addEventListener(name,e=>{e.preventDefault();e.stopPropagation();drop.classList.add('drag-over');}));
+  ['dragleave','drop'].forEach(name=>drop.addEventListener(name,e=>{e.preventDefault();e.stopPropagation();drop.classList.remove('drag-over');}));
+  drop.addEventListener('drop',e=>{if(!rendering&&e.dataTransfer.files.length)loadFile(e.dataTransfer.files[0]);});
+  fileInput.addEventListener('change',e=>{if(e.target.files&&e.target.files[0])loadFile(e.target.files[0]);});
+  function clearResult(){if(resultURL){URL.revokeObjectURL(resultURL);resultURL=null;}$('resultVideo').removeAttribute('src');$('resultVideo').load();$('output').classList.remove('visible');}
+  async function loadFile(incoming){
+    if(rendering)return;
+    const id=++fileLoadNumber;clearResult();decodedAudio=null;file=null;$('renderBtn').disabled=true;
+    if(incoming.size>MAX_BYTES){setStatus('Diese Datei ist größer als 200 MB. Bitte verwende eine kleinere Audiodatei.','error');return;}
+    if(incoming.size===0){setStatus('Diese Datei ist leer.','error');return;}
+    file=incoming;$('fileName').textContent=incoming.name;$('fileStats').textContent=sizeString(incoming.size)+' · Audio wird gelesen …';
+    $('renderNote').textContent='Lese und dekodiere die Audiodatei lokal …';setStatus('');
+    const titleGuess=incoming.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
+    if(titleGuess)$('songTitle').value=titleGuess.slice(0,65);
+    try{
+      const data=await incoming.arrayBuffer();
+      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+      if(!AudioContextClass)throw Error('Dein Browser unterstützt die Web Audio API nicht.');
+      const audioCtx=new AudioContextClass();
+      let audio;
+      try{audio=await audioCtx.decodeAudioData(data);}finally{await audioCtx.close().catch(()=>{});}
+      if(id!==fileLoadNumber)return;
+      if(!audio.length||!Number.isFinite(audio.duration))throw Error('Die Audiodatei enthält keine gültigen Samples.');
+      decodedAudio=audio;previewStartTime=performance.now();
+      $('fileStats').textContent=sizeString(incoming.size)+' · '+durationString(audio.duration)+' · '+audio.sampleRate.toLocaleString('de-DE')+' Hz';
+      $('renderBtn').disabled=false;
+      $('renderNote').textContent=`Länge ${durationString(audio.duration)} · 30 FPS · 100 % im Browser · kein Upload`;setStatus('');
+      if(audio.duration>1200)setStatus('Hinweis: Bei Songs über 20 Minuten kann der Export viel Zeit und Arbeitsspeicher beanspruchen.');
+    }catch(err){if(id!==fileLoadNumber)return;file=null;decodedAudio=null;$('fileStats').textContent='Datei konnte nicht gelesen werden';$('renderNote').textContent='Bitte eine andere Audiodatei wählen.';setStatus('Audio konnte nicht dekodiert werden: '+(err.message||err),'error');}
+  }
+  function setProgress(n,txt,desc){const pct=clamp(Math.round(n),0,100);$('progressFill').style.width=pct+'%';$('progressPct').textContent=pct+' %';if(txt)$('progressText').textContent=txt;if(desc)$('progressNote').textContent=desc;}
+  function checkCancel(){if(cancelled)throw new DOMException('Abgebrochen','AbortError');}
+  const sleep=ms=>new Promise(res=>setTimeout(res,ms));
+  async function findVideoConfig(w,h){
+    if(!window.VideoEncoder||!window.VideoFrame||!window.AudioEncoder||!window.AudioData)return null;
+    const bitRate=w*h>=2000000?6500000:4500000;
+    for(const codec of ['avc1.640028','avc1.4d402a','avc1.42e028','avc1.420028']){
+      const cfg={codec,width:w,height:h,bitrate:bitRate,framerate:FPS,latencyMode:'realtime',hardwareAcceleration:'prefer-hardware',avc:{format:'avc'}};
+      try{const support=await VideoEncoder.isConfigSupported(cfg);if(support.supported)return support.config||cfg;}catch(e){}
+    }
+    return null;
+  }
+  async function findAudioConfig(sampleRate){
+    if(!window.AudioEncoder)return null;
+    for(const bitrate of [192000,128000]){
+      const cfg={codec:'mp4a.40.2',sampleRate,numberOfChannels:2,bitrate};
+      try{const support=await AudioEncoder.isConfigSupported(cfg);if(support.supported)return support.config||cfg;}catch(e){}
+    }
+    return null;
+  }
+  function arrayFromChunk(chunk){const data=new Uint8Array(chunk.byteLength);chunk.copyTo(data);return data;}
+  function bytesOf(input){if(!input)return null;if(input instanceof Uint8Array)return new Uint8Array(input);if(input instanceof ArrayBuffer)return new Uint8Array(input.slice(0));return new Uint8Array(input.buffer,input.byteOffset,input.byteLength).slice();}
+  async function encodeAudio(audio,cfg){
+    const samples=[],channels=2,rate=audio.sampleRate,source1=audio.getChannelData(0),source2=audio.numberOfChannels>1?audio.getChannelData(1):source1;
+    const frameSize=1024,total=Math.ceil(audio.length/frameSize);
+    let encoderError=null,desc=null;
+    const encoder=new AudioEncoder({output:(chunk,meta)=>{if(meta?.decoderConfig?.description)desc=bytesOf(meta.decoderConfig.description);samples.push({data:arrayFromChunk(chunk),timestamp:chunk.timestamp,duration:1024,key:true});},error:e=>{encoderError=e;}});
+    try{
+      encoder.configure(cfg);
+      for(let i=0;i<total;i++){
+        checkCancel();if(encoderError)throw encoderError;
+        const start=i*frameSize,end=Math.min(start+frameSize,audio.length),len=end-start;
+        const channelsData=new Float32Array(frameSize*channels);
+        channelsData.set(source1.subarray(start,end),0);
+        channelsData.set(source2.subarray(start,end),frameSize);
+        const frame=new AudioData({format:'f32-planar',sampleRate:rate,numberOfFrames:frameSize,numberOfChannels:channels,timestamp:Math.round(start*1000000/rate),data:channelsData});
+        try{encoder.encode(frame);}finally{frame.close();}
+        if(i%60===0){setProgress(i/total*16,'Audio wird kodiert …');while(encoder.encodeQueueSize>24){checkCancel();await sleep(8);}await sleep(0);}
+      }
+      await encoder.flush();if(encoderError)throw encoderError;
+      return {type:'audio',samples,sampleRate:rate,channels,bitrate:cfg.bitrate,asc:desc};
+    }finally{try{encoder.close();}catch(e){}}
+  }
+  async function encodeVideo(audio,opts,preset,cfg){
+    const samples=[];let decoderConfig=null,encoderError=null;
+    renderCanvas.width=preset.width;renderCanvas.height=preset.height;
+    const ctx=renderCanvas.getContext('2d',{alpha:false,willReadFrequently:false});
+    const encoder=new VideoEncoder({output:(chunk,meta)=>{if(meta?.decoderConfig?.description)decoderConfig=bytesOf(meta.decoderConfig.description);samples.push({data:arrayFromChunk(chunk),timestamp:chunk.timestamp,duration:1000,key:chunk.type==='key'});},error:e=>{encoderError=e;}});
+    const total=Math.ceil(audio.duration*FPS),start=performance.now();
+    try{
+      encoder.configure(cfg);
+      for(let i=0;i<total;i++){
+        checkCancel();if(encoderError)throw encoderError;
+        paint(ctx,preset.width,preset.height,i/FPS,opts);
+        const frame=new VideoFrame(renderCanvas,{timestamp:Math.round(i*1000000/FPS),duration:Math.round(1000000/FPS)});
+        try{encoder.encode(frame,{keyFrame:i%60===0});}finally{frame.close();}
+        if(i%6===0||i===total-1){
+          setProgress(16+i/total*81,`Video wird gerendert … ${i+1} / ${total} Frames`, `Verstrichene Zeit: ${durationString((performance.now()-start)/1000)} · Während des Exports den Tab geöffnet lassen.`);
+          while(encoder.encodeQueueSize>10){checkCancel();await sleep(12);}
+          await sleep(0);
+        }
+      }
+      setProgress(97,'Videodaten werden abgeschlossen …');
+      await encoder.flush();if(encoderError)throw encoderError;
+      if(!decoderConfig)throw Error('Der Videoencoder hat keine H.264-Konfigurationsdaten geliefert.');
+      return {type:'video',samples,width:preset.width,height:preset.height,fps:FPS,avcc:decoderConfig};
+    }finally{try{encoder.close();}catch(e){}}
+  }
+  // Kleiner, vollständig eingebauter ISO-BMFF/MP4-Muxer: H.264 AVC + MPEG-4 AAC.
+  const asBytes=s=>new Uint8Array([...s].map(c=>c.charCodeAt(0)));
+  const u8=(...a)=>new Uint8Array(a);
+  const u16=n=>u8((n>>>8)&255,n&255);
+  const u32=n=>u8((n/16777216)&255,(n>>>16)&255,(n>>>8)&255,n&255);
+  function cat(...arr){const n=arr.reduce((s,a)=>s+a.length,0),r=new Uint8Array(n);let o=0;for(const a of arr){r.set(a,o);o+=a.length;}return r;}
+  function box(name,...parts){const size=8+parts.reduce((sum,p)=>sum+p.length,0);if(size>=4294967296)throw Error('Eine MP4-Box überschreitet 4 GB.');return cat(u32(size),asBytes(name),...parts);}
+  const full=(name,ver,flags,...parts)=>box(name,u8(ver,(flags>>>16)&255,(flags>>>8)&255,flags&255),...parts);
+  const matrix=()=>cat(u32(65536),u32(0),u32(0),u32(0),u32(65536),u32(0),u32(0),u32(0),u32(1073741824));
+  function descriptor(tag,payload){let n=payload.length,parts=[n&127];n>>>=7;while(n){parts.unshift((n&127)|128);n>>>=7;}return cat(u8(tag,...parts),payload);}
+  function makeASC(sr,ch){const frequencies=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];const idx=frequencies.indexOf(sr);if(idx<0)throw Error('Nicht unterstützte AAC-Sample-Rate: '+sr);const b=(2<<11)|(idx<<7)|(ch<<3);return u16(b);}
+  function esdsBox(audio){const asc=audio.asc&&audio.asc.length?audio.asc:makeASC(audio.sampleRate,audio.channels);
+    const decSpec=descriptor(5,asc);
+    const decCfg=descriptor(4,cat(u8(0x40,0x15,0,0,0),u32(audio.bitrate),u32(audio.bitrate),decSpec));
+    const sl=descriptor(6,u8(2));const es=descriptor(3,cat(u16(2),u8(0),decCfg,sl));
+    return full('esds',0,0,es);
+  }
+  function avcSample(video){return box('avc1',new Uint8Array(6),u16(1),new Uint8Array(16),u16(video.width),u16(video.height),u32(0x00480000),u32(0x00480000),u32(0),u16(1),new Uint8Array(32),u16(24),u16(65535),box('avcC',video.avcc));}
+  function aacSample(audio){return box('mp4a',new Uint8Array(6),u16(1),new Uint8Array(8),u16(audio.channels),u16(16),u16(0),u16(0),u32(audio.sampleRate*65536),esdsBox(audio));}
+  function trackBox(track,id,movieDuration){
+    const isVideo=track.type==='video',timescale=isVideo?FPS*1000:track.sampleRate;
+    const totalDuration=track.samples.reduce((s,x)=>s+x.duration,0);
+    const tkhd=full('tkhd',0,7,u32(0),u32(0),u32(id),u32(0),u32(Math.round(totalDuration*1000/timescale)),new Uint8Array(8),u16(0),u16(0),u16(isVideo?0:256),u16(0),matrix(),u32(isVideo?track.width*65536:0),u32(isVideo?track.height*65536:0));
+    const mdhd=full('mdhd',0,0,u32(0),u32(0),u32(timescale),u32(totalDuration),u16(0x55c4),u16(0));
+    const handlerName=asBytes(isVideo?'VideoHandler\0':'SoundHandler\0');
+    const hdlr=full('hdlr',0,0,u32(0),asBytes(isVideo?'vide':'soun'),new Uint8Array(12),handlerName);
+    const header=isVideo?full('vmhd',0,1,u16(0),new Uint8Array(6)):full('smhd',0,0,u16(0),u16(0));
+    const dref=full('dref',0,0,u32(1),full('url ',0,1));
+    const dinf=box('dinf',dref);
+    const stsd=full('stsd',0,0,u32(1),isVideo?avcSample(track):aacSample(track));
+    const runs=[];
+    for(const s of track.samples){const last=runs.at(-1);if(last&&last.duration===s.duration)last.count++;else runs.push({duration:s.duration,count:1});}
+    const stts=full('stts',0,0,u32(runs.length),...runs.map(r=>cat(u32(r.count),u32(r.duration))));
+    const stsc=full('stsc',0,0,u32(1),u32(1),u32(1),u32(1));
+    const stsz=full('stsz',0,0,u32(0),u32(track.samples.length),...track.samples.map(s=>u32(s.data.length)));
+    const stco=full('stco',0,0,u32(track.samples.length),...track.samples.map(s=>u32(s.offset||0)));
+    const stss=isVideo?full('stss',0,0,u32(track.samples.filter(s=>s.key).length),...track.samples.map((s,i)=>s.key?u32(i+1):null).filter(Boolean)):null;
+    const stbl=box('stbl',stsd,stts,stsc,stsz,stco,...(stss?[stss]:[]));
+    const minf=box('minf',header,dinf,stbl);
+    return box('trak',tkhd,box('mdia',mdhd,hdlr,minf));
+  }
+  function moovBox(video,audio){
+    const vDuration=video.samples.reduce((n,s)=>n+s.duration,0)/(FPS*1000),aDuration=audio.samples.reduce((n,s)=>n+s.duration,0)/audio.sampleRate;
+    const duration=Math.round(Math.max(vDuration,aDuration)*1000);
+    const mvhd=full('mvhd',0,0,u32(0),u32(0),u32(1000),u32(duration),u32(65536),u16(256),new Uint8Array(10),matrix(),new Uint8Array(24),u32(3));
+    return box('moov',mvhd,trackBox(video,1,duration),trackBox(audio,2,duration));
+  }
+  function muxMp4(video,audio){
+    if(!video.samples.length||!audio.samples.length)throw Error('Keine Audio- oder Videodaten kodiert.');
+    // Für Wiedergabe ab Dateianfang wird moov vor mdat gespeichert (Faststart).
+    const ftyp=box('ftyp',asBytes('isom'),u32(512),asBytes('isom'),asBytes('iso2'),asBytes('avc1'),asBytes('mp41'));
+    const placeholder=moovBox(video,audio);
+    const merged=[...video.samples.map(s=>({...s,kind:0})),...audio.samples.map(s=>({...s,kind:1}))]
+      .sort((a,b)=>a.timestamp-b.timestamp||a.kind-b.kind);
+    let offset=ftyp.length+placeholder.length+8;
+    for(const s of merged){s.offset=offset;offset+=s.data.length;if(offset>=4294967296)throw Error('Die MP4-Datei würde 4 GB überschreiten.');}
+    // Offset-Einträge müssen an denselben Objekten hängen wie die Track-Samples.
+    const videoByData=new Map(video.samples.map(s=>[s.data,s]));const audioByData=new Map(audio.samples.map(s=>[s.data,s]));
+    for(const s of merged)(s.kind===0?videoByData:audioByData).get(s.data).offset=s.offset;
+    const moov=moovBox(video,audio);
+    if(moov.length!==placeholder.length)throw Error('Interner MP4-Offsetfehler.');
+    const header=cat(u32(offset-ftyp.length-moov.length),asBytes('mdat'));
+    return new Blob([ftyp,moov,header,...merged.map(s=>s.data)],{type:'video/mp4'});
+  }
+  function chooseRecorderType(){
+    if(typeof MediaRecorder==='undefined')return null;
+    for(const [mime,ext] of [['video/mp4;codecs="avc1.42E028,mp4a.40.2"','mp4'],['video/mp4','mp4'],['video/webm;codecs=vp9,opus','webm'],['video/webm;codecs=vp8,opus','webm'],['video/webm','webm']]){
+      try{if(MediaRecorder.isTypeSupported(mime))return {mime,ext};}catch(e){}
+    }
+    return null;
+  }
+  async function recorderFallback(audio,opts,preset){
+    const recorderType=chooseRecorderType();
+    if(!recorderType||!renderCanvas.captureStream)throw Error('Dieser Browser unterstützt weder WebCodecs-MP4 noch einen geeigneten MediaRecorder-Export. Bitte Chrome oder Edge aktualisieren.');
+    const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+    const audioCtx=new AudioContextClass({sampleRate:audio.sampleRate});
+    const source=audioCtx.createBufferSource();source.buffer=audio;
+    const dest=audioCtx.createMediaStreamDestination();source.connect(dest);
+    renderCanvas.width=preset.width;renderCanvas.height=preset.height;
+    const ctx=renderCanvas.getContext('2d',{alpha:false});
+    paint(ctx,preset.width,preset.height,0,opts);
+    const videoStream=renderCanvas.captureStream(FPS),videoTrack=videoStream.getVideoTracks()[0];
+    const stream=new MediaStream([videoTrack,...dest.stream.getAudioTracks()]);
+    const recorder=new MediaRecorder(stream,{mimeType:recorderType.mime,videoBitsPerSecond:5500000,audioBitsPerSecond:192000});
+    const chunks=[];
+    recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
+    const stopped=new Promise((resolve,reject)=>{recorder.onstop=resolve;recorder.onerror=e=>reject(e.error||new Error('MediaRecorder-Fehler'));});
+    try{
+      await audioCtx.resume();
+      const start=performance.now();
+      recorder.start(1000);source.start();
+      const total=Math.ceil(audio.duration*FPS);
+      for(let i=0;i<total;i++){
+        checkCancel();
+        const when=start+i*1000/FPS,delay=when-performance.now();
+        if(delay>2)await sleep(delay);
+        // Im Fallback muss mit Echtzeit aufgenommen werden.
+        paint(ctx,preset.width,preset.height,i/FPS,opts);
+        if(videoTrack.requestFrame)videoTrack.requestFrame();
+        if(i%12===0)setProgress(i/total*95,'Echtzeitaufnahme läuft …',`MediaRecorder-Ersatzmodus · ${durationString(i/FPS)} / ${durationString(audio.duration)} · Bitte Tab geöffnet lassen.`);
+      }
+      const tail=start+audio.duration*1000-performance.now();if(tail>0)await sleep(tail);
+      if(recorder.state!=='inactive')recorder.stop();await stopped;
+      return {blob:new Blob(chunks,{type:recorder.mimeType||recorderType.mime}),ext:recorderType.ext,fallback:true};
+    }finally{
+      try{source.stop();}catch(e){}
+      try{if(recorder.state!=='inactive')recorder.stop();}catch(e){}
+      for(const track of stream.getTracks())track.stop();
+      await audioCtx.close().catch(()=>{});
+    }
+  }
+  function filename(title,ext){const slug=title.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,55)||'musik';return `vinyl-${slug}-${PRESETS[format].ratio.replace(':','x')}.${ext}`;}
+  function lockUI(locked){rendering=locked;fileInput.disabled=locked;document.querySelectorAll('[data-color],[data-format],[data-vinyl]').forEach(x=>x.disabled=locked);$('customColorBtn').disabled=locked;$('customColorPicker').disabled=locked;$('songTitle').disabled=locked;$('artistName').disabled=locked;$('renderBtn').disabled=locked||!decodedAudio;$('renderBtn').textContent=locked?'Video wird erstellt …':'MP4 rendern →';}
+  $('cancelBtn').addEventListener('click',()=>{cancelled=true;$('cancelBtn').disabled=true;$('progressText').textContent='Export wird abgebrochen …';});
+  $('renderBtn').addEventListener('click',async()=>{
+    if(rendering||!decodedAudio)return;
+    clearResult();cancelled=false;$('cancelBtn').disabled=false;setStatus('');lockUI(true);
+    $('progressWrap').classList.add('visible');setProgress(0,'Export wird vorbereitet …','Das Video wird direkt auf diesem Gerät erstellt, ohne Datei-Upload.');
+    const options=state(),preset=PRESETS[format],audio=decodedAudio;
+    try{
+      let result=null;
+      const vcfg=await findVideoConfig(preset.width,preset.height);
+      const acfg=vcfg?await findAudioConfig(audio.sampleRate):null;
+      checkCancel();
+      if(vcfg&&acfg){
+        try{
+          const at=await encodeAudio(audio,acfg);checkCancel();
+          const vt=await encodeVideo(audio,options,preset,vcfg);checkCancel();
+          setProgress(98,'MP4-Datei wird zusammengefügt …');
+          const blob=muxMp4(vt,at);result={blob,ext:'mp4'};
+        }catch(err){if(err.name==='AbortError')throw err;console.warn('WebCodecs-MP4 fehlgeschlagen:',err);setStatus('Direkter MP4-Export fehlgeschlagen. Ersatzexport über MediaRecorder wird versucht.');setProgress(0,'Ersatzexport wird gestartet …');}
+      }
+      if(!result){checkCancel();result=await recorderFallback(audio,options,preset);}
+      checkCancel();
+      if(result.blob.size===0)throw Error('Es wurde eine leere Videodatei erstellt.');
+      resultURL=URL.createObjectURL(result.blob);
+      $('resultVideo').src=resultURL;
+      $('downloadLink').href=resultURL;$('downloadLink').download=filename(options.title,result.ext);
+      $('downloadLink').textContent=(result.ext==='mp4'?'MP4':'WebM')+' herunterladen ↓';
+      $('outputTitle').textContent='Dein Vinyl-Video ist fertig!';
+      $('outputInfo').textContent=`${preset.width} × ${preset.height} · ${durationString(audio.duration)} · ${sizeString(result.blob.size)} · ${result.ext.toUpperCase()} · lokal erstellt`;
+      $('output').classList.add('visible');setProgress(100,'Export abgeschlossen!');
+      if(result.ext==='webm')setStatus('Der direkte MP4-Export wird von diesem Browser nicht unterstützt. Deshalb wurde ein WebM-Video erstellt. Für MP4 bitte einen Browser mit H.264/AAC-WebCodecs-Unterstützung nutzen.');
+      else if(result.fallback)setStatus('MP4 wurde mit dem Browser-Recorder erstellt. Die verwendeten Video- und Audiocodecs können je nach Browser abweichen; prüfe die Datei vor dem Hochladen.');
+      else setStatus('MP4 mit H.264-Video und AAC-Audio erfolgreich erstellt. Die Datei wurde nicht hochgeladen.','success');
+      $('output').scrollIntoView({behavior:'smooth',block:'nearest'});
+    }catch(err){if(err.name==='AbortError'){setStatus('Der Export wurde abgebrochen. Deine Audiodatei bleibt geladen.');}else{console.error(err);setStatus('Export nicht möglich: '+(err.message||String(err))+' Versuche es mit einer kürzeren Audiodatei oder einem aktuellen Desktop-Browser.','error');}}
+    finally{$('progressWrap').classList.remove('visible');lockUI(false);}
+  });
+  window.addEventListener('pagehide',()=>{if(resultURL)URL.revokeObjectURL(resultURL);cancelAnimationFrame(previewHandle);});
+})();
+</script>
+</body>
+</html>
